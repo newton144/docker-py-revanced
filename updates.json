@@ -1,1 +1,143 @@
-{}
+{
+    "bandcamp": {
+        "app_version": "3.2.3..220444",
+        "patches_version": "v5.34.0",
+        "cli_version": "v5.0.1",
+        "ms_epoch_since_patched": 1756434361262,
+        "date_patched": "2025-08-29 02:26:01.261575+05:30",
+        "app_dump": {
+            "app_name": "bandcamp",
+            "app_version": "3.2.3..220444",
+            "experiment": false,
+            "cli_dl": "https://github.com/revanced/revanced-cli/releases/latest",
+            "patches_dl_list": [
+                "https://github.com/revanced/revanced-patches/releases/latest"
+            ],
+            "patches_dl": "https://github.com/revanced/revanced-patches/releases/latest",
+            "exclude_request": [],
+            "include_request": [],
+            "resource": {
+                "cli": {
+                    "file_name": "2d7026935af86ae1618510c333c6e98bcd084ac4312ff8fd382414464c601e7f.jar",
+                    "version": "v5.0.1"
+                },
+                "patches": {
+                    "file_name": "0f53131fb8428d79d66c23c2d10a16e982551e5435d8e4750e9c608f577ab25e.rvp",
+                    "version": "v5.34.0"
+                }
+            },
+            "patch_bundles": [
+                {
+                    "name": "patches",
+                    "file_name": "0f53131fb8428d79d66c23c2d10a16e982551e5435d8e4750e9c608f577ab25e.rvp",
+                    "version": "v5.34.0"
+                }
+            ],
+            "no_of_patches": 1,
+            "keystore_name": "revanced.keystore",
+            "archs_to_build": [],
+            "options_file": "options.json",
+            "download_file_name": "bandcamp.apk",
+            "download_dl": "https://www.apkmirror.com/wp-content/themes/APKMirror/download.php?id=10527610&key=598134c4f29ca158946856670151d7fd5ffe5f63",
+            "download_source": "https://www.apkmirror.com/apk/bandcamp-inc/bandcamp/",
+            "package_name": "com.bandcamp.android",
+            "old_key": true,
+            "patches": [],
+            "space_formatted": true
+        }
+    },
+    "duolingo": {
+        "app_version": "5.158.4",
+        "patches_version": "v5.34.0",
+        "cli_version": "v5.0.1",
+        "ms_epoch_since_patched": 1756434368941,
+        "date_patched": "2025-08-29 02:26:08.941140+05:30",
+        "app_dump": {
+            "app_name": "duolingo",
+            "app_version": "5.158.4",
+            "experiment": false,
+            "cli_dl": "https://github.com/revanced/revanced-cli/releases/latest",
+            "patches_dl_list": [
+                "https://github.com/revanced/revanced-patches/releases/latest"
+            ],
+            "patches_dl": "https://github.com/revanced/revanced-patches/releases/latest",
+            "exclude_request": [],
+            "include_request": [],
+            "resource": {
+                "cli": {
+                    "file_name": "2d7026935af86ae1618510c333c6e98bcd084ac4312ff8fd382414464c601e7f.jar",
+                    "version": "v5.0.1"
+                },
+                "patches": {
+                    "file_name": "0f53131fb8428d79d66c23c2d10a16e982551e5435d8e4750e9c608f577ab25e.rvp",
+                    "version": "v5.34.0"
+                }
+            },
+            "patch_bundles": [
+                {
+                    "name": "patches",
+                    "file_name": "0f53131fb8428d79d66c23c2d10a16e982551e5435d8e4750e9c608f577ab25e.rvp",
+                    "version": "v5.34.0"
+                }
+            ],
+            "no_of_patches": 2,
+            "keystore_name": "revanced.keystore",
+            "archs_to_build": [],
+            "options_file": "options.json",
+            "download_file_name": "duolingo.apk",
+            "download_dl": "https://www.apkmirror.com/wp-content/themes/APKMirror/download.php?id=6610874&key=6d3136249bbbd078172f9a11a931d1ab4c691816&forcebaseapk=true",
+            "download_source": "https://www.apkmirror.com/apk/duolingo/duolingo-duolingo/",
+            "package_name": "com.duolingo",
+            "old_key": true,
+            "patches": [],
+            "space_formatted": true
+        }
+    },
+    "pixiv": {
+        "app_version": "6.141.1",
+        "patches_version": "v5.34.0",
+        "cli_version": "v5.0.1",
+        "ms_epoch_since_patched": 1756434374197,
+        "date_patched": "2025-08-29 02:26:14.197834+05:30",
+        "app_dump": {
+            "app_name": "pixiv",
+            "app_version": "6.141.1",
+            "experiment": false,
+            "cli_dl": "https://github.com/revanced/revanced-cli/releases/latest",
+            "patches_dl_list": [
+                "https://github.com/revanced/revanced-patches/releases/latest"
+            ],
+            "patches_dl": "https://github.com/revanced/revanced-patches/releases/latest",
+            "exclude_request": [],
+            "include_request": [],
+            "resource": {
+                "cli": {
+                    "file_name": "2d7026935af86ae1618510c333c6e98bcd084ac4312ff8fd382414464c601e7f.jar",
+                    "version": "v5.0.1"
+                },
+                "patches": {
+                    "file_name": "0f53131fb8428d79d66c23c2d10a16e982551e5435d8e4750e9c608f577ab25e.rvp",
+                    "version": "v5.34.0"
+                }
+            },
+            "patch_bundles": [
+                {
+                    "name": "patches",
+                    "file_name": "0f53131fb8428d79d66c23c2d10a16e982551e5435d8e4750e9c608f577ab25e.rvp",
+                    "version": "v5.34.0"
+                }
+            ],
+            "no_of_patches": 1,
+            "keystore_name": "revanced.keystore",
+            "archs_to_build": [],
+            "options_file": "options.json",
+            "download_file_name": "pixiv.apk",
+            "download_dl": "https://www.apkmirror.com/wp-content/themes/APKMirror/download.php?id=9335492&key=e04cb6e14b3b19e97227ae9d8223243e1109c941",
+            "download_source": "https://www.apkmirror.com/apk/pixiv-inc/pixiv/",
+            "package_name": "jp.pxv.android",
+            "old_key": true,
+            "patches": [],
+            "space_formatted": true
+        }
+    }
+}
