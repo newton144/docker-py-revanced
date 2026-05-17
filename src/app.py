@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 from loguru import logger
 
+from src.cli_args import merge_cli_arg_maps
 from src.config import RevancedConfig
 from src.downloader.sources import APKEEP, apk_sources
 from src.exceptions import BuilderError, DownloadError, PatchingFailedError
@@ -57,6 +58,21 @@ class APP(object):
             f"{app_name}_SPACE_FORMATTED_PATCHES".upper(),
             config.global_space_formatted,
         )
+        # This optional app-level profile allows switching argument families per app.
+        self.cli_argsf = config.env.str(f"{app_name}_CLI_ARGSF".upper(), "")
+        # This optional app-level override customizes list-patches argument mapping.
+        self.cli_lpargs = config.env.str(f"{app_name}_CLI_LPARGS".upper(), "")
+        # This optional app-level override customizes patch command argument mapping.
+        self.cli_pargs = config.env.str(f"{app_name}_CLI_PARGS".upper(), "")
+        # We resolve final CLI argument maps once during app initialization for consistent command building.
+        self.cli_lp_args, self.cli_p_args = merge_cli_arg_maps(
+            config.global_cli_argsf,
+            (config.global_cli_lpargs, config.global_cli_pargs),
+            (self.cli_lpargs, self.cli_pargs),
+            self.cli_argsf,
+        )
+        # Obtainium metadata reuses the computed output name, so cache the value with an explicit string type.
+        self._cached_output_file_name: str = ""
 
     def download_apk_for_patching(
         self: Self,
@@ -133,12 +149,23 @@ class APP(object):
         -------
             a string that represents the output file name for an APK file.
         """
+        if self._cached_output_file_name:
+            return self._cached_output_file_name
+
+        # The patch set identity includes every bundle file and version so Obtainium detects patch-only updates.
+        patch_bundle_identity = "|".join(f"{bundle['file_name']}@{bundle['version']}" for bundle in self.patch_bundles)
+        # A short digest keeps the release asset name readable while still changing when any bundle changes.
+        patch_bundle_digest = hashlib.sha256(patch_bundle_identity.encode()).hexdigest()[:12]
+        # The visible version segment remains useful for humans, but includes every bundle version now.
+        patch_bundle_versions = "-".join(bundle["version"] for bundle in self.patch_bundles) or "unknown"
         current_date = datetime.now(ZoneInfo(time_zone))
         formatted_date = current_date.strftime("%Y%b%d.%I%M%p").upper()
-        return (
+        self._cached_output_file_name = (
             f"Re{self.app_name}-Version{slugify(self.app_version)}"
-            f"-PatchVersion{slugify(self.patch_bundles[0]["version"])}-{formatted_date}-output.apk"
+            f"-PatchVersion{slugify(patch_bundle_versions)}"
+            f"-PatchSet{patch_bundle_digest}-{formatted_date}-output.apk"
         )
+        return self._cached_output_file_name
 
     def get_patch_bundles_versions(self: Self) -> list[str]:
         """Get versions of all patch bundles."""
@@ -161,14 +188,14 @@ class APP(object):
         ----------
         url : str
             The `url` parameter is a string that represents the URL of the resource you want to download.
-            It can be a URL from GitHub or a local file URL.
+            It can be a URL from GitHub, GitLab, or a local file URL.
         config : RevancedConfig
             The `config` parameter is an instance of the `RevancedConfig` class. It is used to provide
             configuration settings for the download process.
         assets_filter : str
             The `assets_filter` parameter is a string that is used to filter the assets to be downloaded
-            from a GitHub repository. It is used when the `url` parameter starts with "https://github". The
-            `assets_filter` string is matched against the names of the assets in the repository, and only
+            from a GitHub or GitLab repository. It is used when the `url` parameter points at a supported
+            release host. The `assets_filter` string is matched against the assets in the repository, and only
             file_name : str
             The `file_name` parameter is a string that represents the name of the file that will be
             downloaded. If no value is provided for `file_name`, the function will generate a filename based
@@ -188,6 +215,11 @@ class APP(object):
             tag, url = Github.patch_resource(url, assets_filter, config)
             if tag.startswith("tags/"):
                 tag = tag.split("/")[-1]
+        # GitLab release URLs need host-specific API resolution before the generic file downloader can stream bytes.
+        elif url.startswith("https://gitlab"):
+            from src.downloader.gitlab import Gitlab  # noqa: PLC0415
+
+            tag, url = Gitlab.patch_resource(url, assets_filter, config)
         elif url.startswith("local://"):
             return tag, url.split("/")[-1]
         if not file_name:
@@ -205,7 +237,7 @@ class APP(object):
         # Download multiple patch bundles
         for i, patches_url in enumerate(self.patches_dl_list):
             bundle_name = f"patches_{i}" if len(self.patches_dl_list) > 1 else "patches"
-            download_tasks.append((bundle_name, patches_url, None, ".*rvp"))
+            download_tasks.append((bundle_name, patches_url, None, ".*(rvp|mpp)"))
 
         return download_tasks
 

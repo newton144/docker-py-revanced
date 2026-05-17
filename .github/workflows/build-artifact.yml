@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@main
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Update Env for custom build
         run: |
@@ -53,7 +53,7 @@ jobs:
           echo "Added envs"
 
       - name: Setup python
-        uses: actions/setup-python@main
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.x'
 
@@ -85,12 +85,12 @@ jobs:
           "patchName": "Spoof client",
           "options": [
             {
-              "key": "client-id",
+              "key": "Application client ID",
               "value": "'${client_id}'"
             }
           ]
           }'
-          # Check if an object with the patchName "Spoof client" already exists
+          # ReVanced v6 exposes the option name as the key because its list-patches output has no explicit Key field.
           existing_object_index=$(echo "${json_data}" | jq 'map(.patchName) | index("Spoof client")')
           echo "${existing_object_index}"
           if [[ ${existing_object_index} != "null" ]]; then
@@ -104,7 +104,7 @@ jobs:
 
 
       - name: Setup tmate session
-        uses: mxschmitt/action-tmate@master
+        uses: mxschmitt/action-tmate@c0afd6f790e3a5564914980036ebf83216678101 # v3.23
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.DEBUG_ENABLED }}
         with:
           detached: true
@@ -119,8 +119,39 @@ jobs:
               echo "Using Prod compose file."
               docker compose up --build
           fi
+
+      - name: Verify at least one APK was patched
+        if: ${{ true && !inputs.DEBUG_ENABLED }}
+        run: |
+          # Count patched APKs (excluding Microg which is a dependency, not a patched app)
+          patched_count=$(find apks -maxdepth 1 -name "*-output.apk" ! -name "Revanced-Microg-output.apk" -type f 2>/dev/null | wc -l)
+          echo "Found $patched_count patched APK(s)"
+
+          if [ "$patched_count" -eq 0 ]; then
+            echo "::error::No APKs were successfully patched. Build failed."
+            exit 1
+          fi
+
+          echo "✅ Successfully patched $patched_count APK(s):"
+          find apks -maxdepth 1 -name "*-output.apk" ! -name "Revanced-Microg-output.apk" -type f
+
+      - name: Ensure changelog files exist
+        if: ${{ true && !inputs.DEBUG_ENABLED }}
+        run: |
+          # Create empty changelog files if they don't exist (fallback for failed builds)
+          if [ ! -f changelog.md ]; then
+            echo "| Resource Name | Version | Changelog | Published On | Build By|" > changelog.md
+            echo "|---------------|---------|-----------|--------------|---------|" >> changelog.md
+          fi
+          if [ ! -f changelog.json ]; then
+            echo "{}" > changelog.json
+          fi
+          if [ ! -f updates.json ]; then
+            echo "{}" > updates.json
+          fi
+
       - name: Upload Build APKS
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ true && !inputs.DEBUG_ENABLED }}
         with:
           name: Built-APKs
@@ -129,7 +160,7 @@ jobs:
             changelog.json
             updates.json
             apks/*-output.apk
-            apks/VancedMicroG.apk"
+            apks/VancedMicroG.apk
           if-no-files-found: error
 
       - name: Commit Update file
@@ -138,6 +169,6 @@ jobs:
         with:
           branch: changelogs
           skip_checkout: true
-          file_pattern: 'changelog.md changelog.json updates.json'
+          file_pattern: 'changelog.md changelog.json updates.json obtainium_sources/*'
           commit_message: 🚀New Build
           push_options: '--force'

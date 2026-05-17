@@ -14,7 +14,14 @@ from src.downloader.download import Downloader
 from src.exceptions import AppNotFoundError, BuilderError, PatchesJsonLoadError, PatchingFailedError
 from src.parser import Parser
 from src.patches import Patches
-from src.utils import check_java, delete_old_changelog, load_older_updates, save_patch_info, write_changelog_to_file
+from src.utils import (
+    check_java,
+    delete_old_changelog,
+    generate_obtainium_export,
+    load_older_updates,
+    save_patch_info,
+    write_changelog_to_file,
+)
 
 
 def get_app(config: RevancedConfig, app_name: str) -> APP:
@@ -101,37 +108,44 @@ def main() -> None:
     # Determine optimal number of workers (don't exceed number of apps or CPU cores)
     max_workers = min(len(config.apps), config.max_parallel_apps)
 
-    if len(config.apps) == 1 or config.ci_test:
-        # For single app or CI testing, use sequential processing
-        caches = (download_cache, resource_cache, download_lock, resource_lock)
-        for app_name in config.apps:
-            app_updates = process_single_app(app_name, config, caches)
-            updates_info.update(app_updates)
-    else:
-        # For multiple apps, use parallel processing
-        logger.info(f"Processing {len(config.apps)} apps in parallel with {max_workers} workers")
-
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all app processing tasks
+    try:
+        if len(config.apps) == 1 or config.ci_test:
+            # For single app or CI testing, use sequential processing
             caches = (download_cache, resource_cache, download_lock, resource_lock)
-            future_to_app = {
-                executor.submit(process_single_app, app_name, config, caches): app_name for app_name in config.apps
-            }
-
-            # Collect results as they complete
-            total_apps = len(config.apps)
-
-            for completed_count, future in enumerate(as_completed(future_to_app), 1):
-                app_name = future_to_app[future]
+            for app_name in config.apps:
                 try:
-                    app_updates = future.result()
+                    app_updates = process_single_app(app_name, config, caches)
                     updates_info.update(app_updates)
-                    logger.info(f"Progress: {completed_count}/{total_apps} apps completed ({app_name})")
-                except BuilderError as e:
+                except Exception as e:  # noqa: BLE001
                     logger.exception(f"Error processing {app_name}: {e}")
-                    logger.info(f"Progress: {completed_count}/{total_apps} apps completed ({app_name} - FAILED)")
+                    logger.info(f"{app_name} - FAILED")
+        else:
+            # For multiple apps, use parallel processing
+            logger.info(f"Processing {len(config.apps)} apps in parallel with {max_workers} workers")
 
-    write_changelog_to_file(updates_info)
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all app processing tasks
+                caches = (download_cache, resource_cache, download_lock, resource_lock)
+                future_to_app = {
+                    executor.submit(process_single_app, app_name, config, caches): app_name for app_name in config.apps
+                }
+
+                # Collect results as they complete
+                total_apps = len(config.apps)
+
+                for completed_count, future in enumerate(as_completed(future_to_app), 1):
+                    app_name = future_to_app[future]
+                    try:
+                        app_updates = future.result()
+                        updates_info.update(app_updates)
+                        logger.info(f"Progress: {completed_count}/{total_apps} apps completed ({app_name})")
+                    except Exception as e:  # noqa: BLE001
+                        logger.exception(f"Error processing {app_name}: {e}")
+                        logger.info(f"Progress: {completed_count}/{total_apps} apps completed ({app_name} - FAILED)")
+    finally:
+        # Always write changelog, even if some apps failed
+        write_changelog_to_file(updates_info)
+        generate_obtainium_export(updates_info, config)
 
 
 if __name__ == "__main__":
