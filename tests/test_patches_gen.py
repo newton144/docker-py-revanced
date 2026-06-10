@@ -4,10 +4,15 @@
 # unittest keeps this parser coverage aligned with the existing project test style.
 # ruff: noqa: PT009
 
+from contextlib import chdir
+from tempfile import TemporaryDirectory
 from typing import Any, Self
 from unittest import TestCase
+from unittest.mock import patch
 
-from src.patches_gen import parse_text_to_json
+from src.cli_args import merge_cli_arg_maps
+from src.patches import Patches
+from src.patches_gen import convert_command_output_to_json, parse_text_to_json
 
 EXPECTED_REVANCED_PATCH_COUNT = 2
 EXPECTED_REVANCED_OPTION_COUNT = 2
@@ -95,6 +100,31 @@ def _patch_by_name(patches: list[dict[Any, Any]], name: str) -> dict[Any, Any]:
 class PatchesGenParserTests(TestCase):
     """Verify parser compatibility with current ReVanced, Morphe, and Anddea output shapes."""
 
+    def test_recommended_version_uses_newest_compatible_version(self: Self) -> None:
+        """Compatible versions may be listed newest-to-oldest, so the builder must not pick the final entry."""
+        selected_version = Patches.select_recommended_version(["8.47.56", "7.29.52"])
+
+        self.assertEqual("8.47.56", selected_version)
+
+    def test_recommended_version_falls_back_to_first_unparseable_version(self: Self) -> None:
+        """Non-standard app versions should stay deterministic instead of crashing patch metadata parsing."""
+        selected_version = Patches.select_recommended_version(["beta-current", "beta-old"])
+
+        self.assertEqual("beta-current", selected_version)
+
+    def test_recommended_version_handles_piko_suffix_versions(self: Self) -> None:
+        """Piko can publish channel-suffixed app versions, so numeric groups should still decide newest support."""
+        selected_version = Patches.select_recommended_version(
+            [
+                "11.80.0-alpha.1",
+                "11.82.0-beta.1",
+                "11.81.0-release.0",
+                "11.95.1-release-ripped.0",
+            ],
+        )
+
+        self.assertEqual("11.95.1-release-ripped.0", selected_version)
+
     def test_revanced_indented_option_names_do_not_split_patch_sections(self: Self) -> None:
         """ReVanced v6 option `Name:` fields should not become fake patch sections."""
         patches = parse_text_to_json(REVANCED_SAMPLE)
@@ -129,3 +159,18 @@ class PatchesGenParserTests(TestCase):
         self.assertEqual("gmsCoreVendorGroupId", option["key"])
         self.assertEqual(["app.revanced", "com.google", "com.mgoogle"], option["possible_values"])
         self.assertEqual(["20.47.62", "20.48.46"], gms_core["compatiblePackages"][0]["versions"])
+
+    def test_morphe_list_patches_uses_isolated_temp_path(self: Self) -> None:
+        """Morphe list-patches also supports temp paths, so parallel scans should not share its default."""
+        list_patch_args, _ = merge_cli_arg_maps("morphe-cli", ("", ""))
+
+        with (
+            TemporaryDirectory() as temp_dir,
+            chdir(temp_dir),
+            patch("src.patches_gen.run_command_and_capture_output", return_value=MORPHE_SAMPLE) as run_command,
+        ):
+            convert_command_output_to_json("morphe-cli.jar", "patches.mpp", list_patch_args, "tmp/youtube")
+
+        command = run_command.call_args.args[0]
+        self.assertIn("-t", command)
+        self.assertIn("tmp/youtube", command)
